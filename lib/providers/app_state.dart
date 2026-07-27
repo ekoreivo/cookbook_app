@@ -17,22 +17,36 @@ class RecipeNotifier extends StateNotifier<List<Recipe>> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   RecipeNotifier() : super([]) {
-    _listenToFirestore();
+    _loadInitialData();
+  }
+
+  void _loadInitialData() async {
+    try {
+      final snapshot = await _firestore.collection('recipes').get();
+      if (snapshot.docs.isEmpty) {
+        await _seedDefaultRecipes();
+      } else {
+        state = snapshot.docs.map((doc) {
+          final data = doc.data();
+          data['id'] = doc.id;
+          return Recipe.fromJson(data);
+        }).toList();
+      }
+      _listenToFirestore();
+    } catch (_) {
+      state = _defaultRecipes();
+    }
   }
 
   void _listenToFirestore() {
     _firestore.collection('recipes').snapshots().listen((snapshot) {
       final recipes = snapshot.docs.map((doc) {
         final data = doc.data();
-        // Ensure the ID maps to the Firestore document ID
         data['id'] = doc.id;
         return Recipe.fromJson(data);
       }).toList();
-
-      if (recipes.isEmpty) {
-        // If the cloud database is brand new and empty, seed default recipes
-        _seedDefaultRecipes();
-      } else {
+      
+      if (recipes.isNotEmpty) {
         state = recipes;
       }
     });
@@ -43,18 +57,24 @@ class RecipeNotifier extends StateNotifier<List<Recipe>> {
     for (final recipe in defaults) {
       await _firestore.collection('recipes').doc(recipe.id).set(recipe.toJson());
     }
+    state = defaults;
   }
 
   Future<void> addRecipe(Recipe recipe) async {
-    // Use the recipe's ID as the Firestore document ID for consistency
+    state = [...state, recipe];
     await _firestore.collection('recipes').doc(recipe.id).set(recipe.toJson());
   }
 
   Future<void> updateRecipe(Recipe recipe) async {
+    state = [
+      for (final r in state)
+        if (r.id == recipe.id) recipe else r
+    ];
     await _firestore.collection('recipes').doc(recipe.id).update(recipe.toJson());
   }
 
   Future<void> deleteRecipe(String id) async {
+    state = state.where((r) => r.id != id).toList();
     await _firestore.collection('recipes').doc(id).delete();
   }
 
