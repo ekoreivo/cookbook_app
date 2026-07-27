@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:cookbook_app/models/recipe.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 // Hive Box Constants
 const String kRecipesBox = 'recipes_box';
@@ -10,57 +11,51 @@ const String kMemoryBox = 'ingredient_memory_box';
 const String kSettingsBox = 'settings_box';
 
 // ---------------------------------------------------------------------------
-// RECIPES NOTIFIER
+// RECIPES NOTIFIER (FIRESTORE CLOUD SYNC)
 // ---------------------------------------------------------------------------
 class RecipeNotifier extends StateNotifier<List<Recipe>> {
-  final Box box;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  RecipeNotifier(this.box) : super([]) {
-    _loadFromHive();
+  RecipeNotifier() : super([]) {
+    _listenToFirestore();
   }
 
-  void _loadFromHive() {
-    // 1. Actually pull the saved data from Hive using the 'recipes' key
-    final rawList = box.get('recipes'); 
+  void _listenToFirestore() {
+    _firestore.collection('recipes').snapshots().listen((snapshot) {
+      final recipes = snapshot.docs.map((doc) {
+        final data = doc.data();
+        // Ensure the ID maps to the Firestore document ID
+        data['id'] = doc.id;
+        return Recipe.fromJson(data);
+      }).toList();
 
-    // 2. Check if we found saved data
-    if (rawList != null) {
-      try {
-        final List<dynamic> decoded = rawList as List<dynamic>;
-        state = decoded
-            .map((item) => Recipe.fromJson(Map<String, dynamic>.from(item as Map)))
-            .toList();
-      } catch (_) {
-        // If the data is corrupted, fall back to defaults
-        state = _defaultRecipes();
+      if (recipes.isEmpty) {
+        // If the cloud database is brand new and empty, seed default recipes
+        _seedDefaultRecipes();
+      } else {
+        state = recipes;
       }
-    } else {
-      // If it's the first time opening the app (no data), load defaults and save them
-      state = _defaultRecipes();
-      _saveToBox();
+    });
+  }
+
+  Future<void> _seedDefaultRecipes() async {
+    final defaults = _defaultRecipes();
+    for (final recipe in defaults) {
+      await _firestore.collection('recipes').doc(recipe.id).set(recipe.toJson());
     }
   }
 
-  void _saveToBox() {
-    box.put('recipes', state.map((r) => r.toJson()).toList());
+  Future<void> addRecipe(Recipe recipe) async {
+    // Use the recipe's ID as the Firestore document ID for consistency
+    await _firestore.collection('recipes').doc(recipe.id).set(recipe.toJson());
   }
 
-  void addRecipe(Recipe recipe) {
-    state = [...state, recipe];
-    _saveToBox();
+  Future<void> updateRecipe(Recipe recipe) async {
+    await _firestore.collection('recipes').doc(recipe.id).update(recipe.toJson());
   }
 
-  void updateRecipe(Recipe recipe) {
-    state = [
-      for (final r in state)
-        if (r.id == recipe.id) recipe else r
-    ];
-    _saveToBox();
-  }
-
-  void deleteRecipe(String id) {
-    state = state.where((r) => r.id != id).toList();
-    _saveToBox();
+  Future<void> deleteRecipe(String id) async {
+    await _firestore.collection('recipes').doc(id).delete();
   }
 
   List<Recipe> _defaultRecipes() {
@@ -96,8 +91,7 @@ class RecipeNotifier extends StateNotifier<List<Recipe>> {
 }
 
 final recipeProvider = StateNotifierProvider<RecipeNotifier, List<Recipe>>((ref) {
-  final box = Hive.box(kRecipesBox);
-  return RecipeNotifier(box);
+  return RecipeNotifier();
 });
 
 // ---------------------------------------------------------------------------
