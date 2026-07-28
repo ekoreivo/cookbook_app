@@ -46,12 +46,12 @@ class MyApp extends ConsumerWidget {
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
-        colorSchemeSeed: Colors.teal,
+        colorSchemeSeed: const Color.fromARGB(255, 0, 59, 136),
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        colorSchemeSeed: Colors.teal,
+        colorSchemeSeed: const Color.fromARGB(255, 0, 59, 136),
       ),
       home: const MainHomeScreen(), // Your main starting screen
     );
