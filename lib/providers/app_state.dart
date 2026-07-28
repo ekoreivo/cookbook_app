@@ -11,31 +11,13 @@ const String kMemoryBox = 'ingredient_memory_box';
 const String kSettingsBox = 'settings_box';
 
 // ---------------------------------------------------------------------------
-// RECIPES NOTIFIER (FIRESTORE CLOUD SYNC)
+// RECIPES NOTIFIER (DIRECT STREAM SYNC)
 // ---------------------------------------------------------------------------
 class RecipeNotifier extends StateNotifier<List<Recipe>> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   RecipeNotifier() : super([]) {
-    _loadInitialData();
-  }
-
-  void _loadInitialData() async {
-    try {
-      final snapshot = await _firestore.collection('recipes').get();
-      if (snapshot.docs.isEmpty) {
-        await _seedDefaultRecipes();
-      } else {
-        state = snapshot.docs.map((doc) {
-          final data = doc.data();
-          data['id'] = doc.id;
-          return Recipe.fromJson(data);
-        }).toList();
-      }
-      _listenToFirestore();
-    } catch (_) {
-      state = _defaultRecipes();
-    }
+    _listenToFirestore();
   }
 
   void _listenToFirestore() {
@@ -45,19 +27,26 @@ class RecipeNotifier extends StateNotifier<List<Recipe>> {
         data['id'] = doc.id;
         return Recipe.fromJson(data);
       }).toList();
-      
-      if (recipes.isNotEmpty) {
+
+      if (recipes.isEmpty) {
+        _seedDefaultRecipes();
+      } else {
         state = recipes;
       }
+    }, onError: (_) {
+      state = _defaultRecipes();
     });
   }
 
   Future<void> _seedDefaultRecipes() async {
     final defaults = _defaultRecipes();
+    // Only seed locally first to prevent UI freezing
+    state = defaults;
+    
+    // Then push to Firestore in the background
     for (final recipe in defaults) {
       await _firestore.collection('recipes').doc(recipe.id).set(recipe.toJson());
     }
-    state = defaults;
   }
 
   Future<void> addRecipe(Recipe recipe) async {
