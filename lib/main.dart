@@ -46,12 +46,12 @@ class MyApp extends ConsumerWidget {
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
-        colorSchemeSeed: Colors.deepOrange,
+        colorSchemeSeed: Colors.teal,
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        colorSchemeSeed: Colors.deepOrange,
+        colorSchemeSeed: Colors.teal,
       ),
       home: const MainHomeScreen(), // Your main starting screen
     );
