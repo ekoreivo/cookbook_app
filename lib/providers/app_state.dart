@@ -6,7 +6,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 // Hive Box Constants
 const String kRecipesBox = 'recipes_box';
-const String kShoppingBox = 'shopping_box';
 const String kMemoryBox = 'ingredient_memory_box';
 const String kSettingsBox = 'settings_box';
 
@@ -104,34 +103,40 @@ final recipeProvider = StateNotifierProvider<RecipeNotifier, List<Recipe>>((ref)
 });
 
 // ---------------------------------------------------------------------------
-// SHOPPING LIST NOTIFIER
+// SHOPPING LIST NOTIFIER (FIREBASE SYNC)
 // ---------------------------------------------------------------------------
 class ShoppingListNotifier extends StateNotifier<List<ShoppingItem>> {
-  final Box box;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  ShoppingListNotifier(this.box) : super([]) {
-    _loadFromBox();
+  ShoppingListNotifier() : super([]) {
+    _listenToFirestore();
   }
 
-  void _loadFromBox() {
-    final rawList = box.get('shopping');
-    if (rawList != null) {
-      try {
-        final List<dynamic> decoded = rawList as List<dynamic>;
-        state = decoded
-            .map((item) => ShoppingItem.fromJson(Map<String, dynamic>.from(item as Map)))
-            .toList();
-      } catch (_) {
-        state = [];
-      }
-    }
+  void _listenToFirestore() {
+    _firestore.collection('shopping_list').snapshots().listen((snapshot) {
+      final items = snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id; // Use the Firebase document ID
+        return ShoppingItem.fromJson(data);
+      }).toList();
+      
+      state = items;
+    }, onError: (error) {
+      print("Error listening to shopping list: $error");
+      state = [];
+    });
   }
 
-  void _saveToBox() {
-    box.put('shopping', state.map((item) => item.toJson()).toList());
+  // Helper to save or update an individual item in Firebase
+  Future<void> _saveItemToFirebase(ShoppingItem item) async {
+    await _firestore.collection('shopping_list').doc(item.id).set(item.toJson());
   }
 
-  /// Accepts a list of ingredients directly (matches line 363)
+  // Helper to delete an individual item from Firebase
+  Future<void> _deleteItemFromFirebase(String id) async {
+    await _firestore.collection('shopping_list').doc(id).delete();
+  }
+
   void addRecipeIngredients(List<Ingredient> ingredients) {
     final List<ShoppingItem> updatedList = List.from(state);
 
@@ -144,55 +149,30 @@ class ShoppingListNotifier extends StateNotifier<List<ShoppingItem>> {
 
       if (existingIndex != -1) {
         final existing = updatedList[existingIndex];
-        updatedList[existingIndex] = existing.copyWith(
+        final updatedItem = existing.copyWith(
           quantity: existing.quantity + ing.quantity,
         );
+        updatedList[existingIndex] = updatedItem;
+        _saveItemToFirebase(updatedItem); // Send update to cloud
       } else {
-        updatedList.add(
-          ShoppingItem(
-            id: DateTime.now().microsecondsSinceEpoch.toString() +
-                ing.name.hashCode.toString(),
-            name: ing.name,
-            quantity: ing.quantity,
-            unit: ing.unit,
-            category: ing.category,
-          ),
+        final newItem = ShoppingItem(
+          id: DateTime.now().microsecondsSinceEpoch.toString() +
+              ing.name.hashCode.toString(),
+          name: ing.name,
+          quantity: ing.quantity,
+          unit: ing.unit,
+          category: ing.category,
         );
+        updatedList.add(newItem);
+        _saveItemToFirebase(newItem); // Send new item to cloud
       }
     }
-
-    state = updatedList;
-    _saveToBox();
+    state = updatedList; // Update local UI instantly
   }
 
   void addIngredientsFromRecipe(Recipe recipe) {
-    final List<ShoppingItem> updatedList = List.from(state);
-
-    for (final ing in recipe.ingredients) {
-      final existingIndex = updatedList.indexWhere(
-        (item) => item.name.toLowerCase() == ing.name.toLowerCase() && item.unit.toLowerCase() == ing.unit.toLowerCase(),
-      );
-
-      if (existingIndex != -1) {
-        final existing = updatedList[existingIndex];
-        updatedList[existingIndex] = existing.copyWith(
-          quantity: existing.quantity + ing.quantity,
-        );
-      } else {
-        updatedList.add(
-          ShoppingItem(
-            id: DateTime.now().microsecondsSinceEpoch.toString() + ing.name.hashCode.toString(),
-            name: ing.name,
-            quantity: ing.quantity,
-            unit: ing.unit,
-            category: ing.category,
-          ),
-        );
-      }
-    }
-
-    state = updatedList;
-    _saveToBox();
+    // Reuse the logic above for cleaner code!
+    addRecipeIngredients(recipe.ingredients);
   }
 
   void addItem(String name, double quantity, String unit, Category category) {
@@ -202,9 +182,13 @@ class ShoppingListNotifier extends StateNotifier<List<ShoppingItem>> {
 
     if (existingIndex != -1) {
       final existing = state[existingIndex];
-      final updated = List<ShoppingItem>.from(state);
-      updated[existingIndex] = existing.copyWith(quantity: existing.quantity + quantity);
-      state = updated;
+      final updatedItem = existing.copyWith(quantity: existing.quantity + quantity);
+      
+      final updatedList = List<ShoppingItem>.from(state);
+      updatedList[existingIndex] = updatedItem;
+      state = updatedList;
+      
+      _saveItemToFirebase(updatedItem);
     } else {
       final newItem = ShoppingItem(
         id: DateTime.now().microsecondsSinceEpoch.toString(),
@@ -214,37 +198,55 @@ class ShoppingListNotifier extends StateNotifier<List<ShoppingItem>> {
         category: category,
       );
       state = [...state, newItem];
+      
+      _saveItemToFirebase(newItem);
     }
-    _saveToBox();
   }
 
   void toggleItem(String id) {
-    state = [
-      for (final item in state)
-        if (item.id == id) item.copyWith(isChecked: !item.isChecked) else item
-    ];
-    _saveToBox();
+    final existingIndex = state.indexWhere((item) => item.id == id);
+    if (existingIndex != -1) {
+      final item = state[existingIndex];
+      final updatedItem = item.copyWith(isChecked: !item.isChecked);
+      
+      state = [
+        for (final i in state)
+          if (i.id == id) updatedItem else i
+      ];
+      
+      _saveItemToFirebase(updatedItem);
+    }
   }
 
   void removeItem(String id) {
     state = state.where((item) => item.id != id).toList();
-    _saveToBox();
+    _deleteItemFromFirebase(id);
   }
 
   void clearChecked() {
+    final checkedItems = state.where((item) => item.isChecked).toList();
     state = state.where((item) => !item.isChecked).toList();
-    _saveToBox();
+    
+    // Delete all checked items from Firebase
+    for (final item in checkedItems) {
+      _deleteItemFromFirebase(item.id);
+    }
   }
 
   void clearAll() {
+    final allItems = List<ShoppingItem>.from(state);
     state = [];
-    _saveToBox();
+    
+    // Delete all items from Firebase
+    for (final item in allItems) {
+      _deleteItemFromFirebase(item.id);
+    }
   }
 }
 
+// Notice how we removed the Hive Box injection here!
 final shoppingListProvider = StateNotifierProvider<ShoppingListNotifier, List<ShoppingItem>>((ref) {
-  final box = Hive.box(kShoppingBox);
-  return ShoppingListNotifier(box);
+  return ShoppingListNotifier();
 });
 
 // ---------------------------------------------------------------------------
