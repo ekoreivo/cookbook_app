@@ -13,6 +13,8 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  await Hive.initFlutter(); // Initialize Hive for Flutter
   
   // Open the required boxes
   await Hive.openBox(kRecipesBox);
