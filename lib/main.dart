@@ -19,7 +19,6 @@ void main() async {
   // Open the required boxes
   await Hive.openBox(kRecipesBox);
   await Hive.openBox(kMemoryBox);
-  await Hive.openBox(kSettingsBox);
 
   runApp(
     const ProviderScope(

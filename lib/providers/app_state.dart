@@ -303,46 +303,60 @@ final ingredientMemoryProvider = StateNotifierProvider<IngredientMemoryNotifier,
 });
 
 // ---------------------------------------------------------------------------
-// THEME MODE NOTIFIER
+// THEME MODE NOTIFIER (FIREBASE SYNC)
 // ---------------------------------------------------------------------------
 class ThemeModeNotifier extends StateNotifier<ThemeMode> {
-  final Box box;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final String _docId = 'user_settings'; // A single document for global settings
 
-  ThemeModeNotifier(this.box) : super(ThemeMode.system) {
-    _loadFromBox();
+  ThemeModeNotifier() : super(ThemeMode.system) {
+    _listenToFirestore();
   }
 
-  void _loadFromBox() {
-    final savedMode = box.get('theme_mode', defaultValue: 'system') as String;
-    switch (savedMode) {
-      case 'dark':
-        state = ThemeMode.dark;
-        break;
-      case 'light':
-        state = ThemeMode.light;
-        break;
-      default:
-        state = ThemeMode.system;
-    }
+  void _listenToFirestore() {
+    _firestore.collection('settings').doc(_docId).snapshots().listen((snapshot) {
+      if (snapshot.exists && snapshot.data() != null) {
+        // Read the theme from Firebase
+        final savedMode = snapshot.data()!['theme_mode'] as String? ?? 'system';
+        switch (savedMode) {
+          case 'dark':
+            state = ThemeMode.dark;
+            break;
+          case 'light':
+            state = ThemeMode.light;
+            break;
+          default:
+            state = ThemeMode.system;
+        }
+      } else {
+        // If no settings exist yet in Firebase, save the default
+        _saveToFirebase(ThemeMode.system);
+      }
+    }, onError: (error) {
+      print("Error listening to theme settings: $error");
+    });
+  }
+
+  Future<void> _saveToFirebase(ThemeMode mode) async {
+    // SetOptions(merge: true) ensures we don't overwrite other settings later
+    await _firestore.collection('settings').doc(_docId).set({
+      'theme_mode': mode.name, 
+    }, SetOptions(merge: true));
   }
 
   void toggleTheme() {
-    if (state == ThemeMode.dark) {
-      state = ThemeMode.light;
-      box.put('theme_mode', 'light');
-    } else {
-      state = ThemeMode.dark;
-      box.put('theme_mode', 'dark');
-    }
+    final newMode = state == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+    state = newMode; // Instantly update UI locally
+    _saveToFirebase(newMode); // Sync to the cloud
   }
 
   void setThemeMode(ThemeMode mode) {
-    state = mode;
-    box.put('theme_mode', mode.name);
+    state = mode; // Instantly update UI locally
+    _saveToFirebase(mode); // Sync to the cloud
   }
 }
 
+// Notice we removed the Hive.box() call here!
 final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) {
-  final box = Hive.box(kSettingsBox);
-  return ThemeModeNotifier(box);
+  return ThemeModeNotifier();
 });
