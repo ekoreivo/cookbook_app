@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:cookbook_app/providers/app_state.dart';
 import 'package:cookbook_app/screens/main_home_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -13,13 +12,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
-  await Hive.initFlutter(); // Initialize Hive for Flutter
   
-  // Open the required boxes
-  await Hive.openBox(kRecipesBox);
-  await Hive.openBox(kMemoryBox);
-
   runApp(
     const ProviderScope(
       child: MyApp(), // Replace with your main app widget name

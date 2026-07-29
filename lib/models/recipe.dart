@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 
 /// Categories with custom display names and colors
 enum Category {
-  fruit('Fruits', Colors.orangeAccent),
+  fruit('Fruits', Color.fromARGB(255, 104, 9, 128)),
   vegetable('Vegetables', Colors.green),
-  dairy('Dairy & Eggs', Colors.amber),
+  dairy('Dairy & Eggs', Color.fromARGB(255, 219, 229, 231)),
   meat('Meat & Seafood', Colors.red),
-  grain('Grain', Colors.orange),
+  grain('Grain', Color.fromARGB(255, 187, 175, 4)),
   sauceSeasoning('Sauce & Seasoning', Colors.deepOrange),
-  frozen('Frozen Foods', Colors.blue),
-  beverages('Beverages', Colors.purple),
+  frozen('Frozen Foods', Color.fromARGB(255, 55, 159, 245)),
+  beverages('Beverages', Color.fromARGB(255, 202, 54, 178)),
   household('Household', Colors.blueGrey),
   other('Other', Colors.grey);
 

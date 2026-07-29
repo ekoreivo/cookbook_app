@@ -203,39 +203,68 @@ class ShoppingListScreen extends ConsumerWidget {
                 final categoryItems = groupedItems[category]!;
 
                 return Card(
+                  // IMPORTANT: This keeps the colored backgrounds inside the rounded corners
+                  clipBehavior: Clip.antiAlias, 
                   margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   child: ExpansionTile(
                     initiallyExpanded: true,
-                    leading: Icon(category.icon, color: Theme.of(context).primaryColor),
+                    
+                    // 1. Color the entire tile header the bold, solid category color
+                    collapsedBackgroundColor: category.color,
+                    backgroundColor: category.color,
+                    
+                    // 2. Make the text and icons white so they pop against the bold header
+                    textColor: Colors.white,
+                    collapsedTextColor: Colors.white,
+                    iconColor: Colors.white,
+                    collapsedIconColor: Colors.white,
+                    
+                    leading: Icon(category.icon, color: Colors.white),
                     title: Text(
                       '${category.displayName} (${categoryItems.length})',
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    children: categoryItems.map((item) {
-                      return CheckboxListTile(
-                        value: item.isChecked,
-                        title: Text(
-                          item.name,
-                          style: TextStyle(
-                            decoration: item.isChecked ? TextDecoration.lineThrough : null,
-                            color: item.isChecked ? Colors.grey : Colors.black87,
+                    
+                    // 3. Wrap the list items to create the faded background effect
+                    children: [
+                      Container(
+                        // Base layer: Blocks the solid color from bleeding through
+                        color: Theme.of(context).cardColor, 
+                        child: Container(
+                          // Faded layer: Applies the category color at 15% opacity
+                          color: category.color.withOpacity(0.15), 
+                          child: Column(
+                            // We use a Column here so all items share the single background Container
+                            children: categoryItems.map((item) {
+                              return CheckboxListTile(
+                                value: item.isChecked,
+                                title: Text(
+                                  item.name,
+                                  style: TextStyle(
+                                    decoration: item.isChecked ? TextDecoration.lineThrough : null,
+                                    // Set to null instead of black87 so it automatically adapts to light/dark themes
+                                    color: item.isChecked ? Colors.grey : null, 
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  '${item.quantity % 1 == 0 ? item.quantity.toInt() : item.quantity} ${item.unit}',
+                                  style: TextStyle(
+                                    decoration: item.isChecked ? TextDecoration.lineThrough : null,
+                                  ),
+                                ),
+                                secondary: IconButton(
+                                  icon: const Icon(Icons.close, size: 18, color: Colors.grey),
+                                  onPressed: () => ref.read(shoppingListProvider.notifier).removeItem(item.id),
+                                ),
+                                onChanged: (_) {
+                                  ref.read(shoppingListProvider.notifier).toggleItem(item.id);
+                                },
+                              );
+                            }).toList(),
                           ),
                         ),
-                        subtitle: Text(
-                          '${item.quantity % 1 == 0 ? item.quantity.toInt() : item.quantity} ${item.unit}',
-                          style: TextStyle(
-                            decoration: item.isChecked ? TextDecoration.lineThrough : null,
-                          ),
-                        ),
-                        secondary: IconButton(
-                          icon: const Icon(Icons.close, size: 18, color: Colors.grey),
-                          onPressed: () => ref.read(shoppingListProvider.notifier).removeItem(item.id),
-                        ),
-                        onChanged: (_) {
-                          ref.read(shoppingListProvider.notifier).toggleItem(item.id);
-                        },
-                      );
-                    }).toList(),
+                      ),
+                    ],
                   ),
                 );
               },

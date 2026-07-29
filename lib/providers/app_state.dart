@@ -1,13 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:cookbook_app/models/recipe.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-// Hive Box Constants
-const String kRecipesBox = 'recipes_box';
-const String kMemoryBox = 'ingredient_memory_box';
-const String kSettingsBox = 'settings_box';
 
 // ---------------------------------------------------------------------------
 // RECIPES NOTIFIER (DIRECT STREAM SYNC)
