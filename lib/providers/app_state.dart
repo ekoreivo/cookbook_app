@@ -250,37 +250,46 @@ final shoppingListProvider = StateNotifierProvider<ShoppingListNotifier, List<Sh
 });
 
 // ---------------------------------------------------------------------------
-// INGREDIENT MEMORY NOTIFIER
+// INGREDIENT MEMORY NOTIFIER (FIREBASE SYNC)
 // ---------------------------------------------------------------------------
 class IngredientMemoryNotifier extends StateNotifier<Map<String, Category>> {
-  final Box box;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  // We'll store the memory map in a dedicated document inside 'settings'
+  final String _docId = 'ingredient_memory'; 
 
-  IngredientMemoryNotifier(this.box) : super({}) {
-    _loadFromBox();
+  IngredientMemoryNotifier() : super({}) {
+    _listenToFirestore();
   }
 
-  void _loadFromBox() {
-    final rawMap = box.get('memory');
-    if (rawMap != null) {
-      try {
-        final Map<dynamic, dynamic> decoded = rawMap as Map<dynamic, dynamic>;
-        final Map<String, Category> map = {};
-        decoded.forEach((key, value) {
-          map[key.toString().toLowerCase()] = Category.fromString(value.toString());
-        });
-        state = map;
-      } catch (_) {
-        state = {};
+  void _listenToFirestore() {
+    _firestore.collection('settings').doc(_docId).snapshots().listen((snapshot) {
+      if (snapshot.exists && snapshot.data() != null) {
+        try {
+          final data = snapshot.data()!;
+          final Map<String, Category> map = {};
+          
+          data.forEach((key, value) {
+            map[key.toString().toLowerCase()] = Category.fromString(value.toString());
+          });
+          
+          state = map;
+        } catch (_) {
+          state = {};
+        }
       }
-    }
+    }, onError: (error) {
+      print("Error listening to ingredient memory: $error");
+    });
   }
 
-  void _saveToBox() {
+  Future<void> _saveToFirebase() async {
     final Map<String, String> rawMap = {};
     state.forEach((key, value) {
       rawMap[key] = value.name;
     });
-    box.put('memory', rawMap);
+    
+    // Push the entire map to Firestore
+    await _firestore.collection('settings').doc(_docId).set(rawMap);
   }
 
   Category? lookupCategory(String name) {
@@ -290,16 +299,17 @@ class IngredientMemoryNotifier extends StateNotifier<Map<String, Category>> {
   void rememberCategory(String name, Category category) {
     final key = name.trim().toLowerCase();
     if (key.isEmpty) return;
+    
     if (state[key] != category) {
-      state = {...state, key: category};
-      _saveToBox();
+      state = {...state, key: category}; // Update local UI instantly
+      _saveToFirebase(); // Sync to the cloud
     }
   }
 }
 
+// Notice we removed the Hive.box() injection here!
 final ingredientMemoryProvider = StateNotifierProvider<IngredientMemoryNotifier, Map<String, Category>>((ref) {
-  final box = Hive.box(kMemoryBox);
-  return IngredientMemoryNotifier(box);
+  return IngredientMemoryNotifier();
 });
 
 // ---------------------------------------------------------------------------
