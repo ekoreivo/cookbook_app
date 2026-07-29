@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 enum Category {
   fruit('Fruits', Color.fromARGB(255, 104, 9, 128)),
   vegetable('Vegetables', Colors.green),
-  dairy('Dairy & Eggs', Color.fromARGB(255, 219, 229, 231)),
+  dairy('Dairy & Eggs', Color.fromARGB(255, 135, 168, 175)),
   meat('Meat & Seafood', Colors.red),
   grain('Grain', Color.fromARGB(255, 187, 175, 4)),
   sauceSeasoning('Sauce & Seasoning', Colors.deepOrange),
   frozen('Frozen Foods', Color.fromARGB(255, 55, 159, 245)),
   beverages('Beverages', Color.fromARGB(255, 202, 54, 178)),
-  household('Household', Colors.blueGrey),
+  household('Household', Color.fromARGB(255, 99, 76, 126)),
   other('Other', Colors.grey);
 
   final String displayName;
@@ -27,17 +27,17 @@ enum Category {
       case Category.dairy:
         return Icons.egg_alt;
       case Category.meat:
-        return Icons.set_meal;
+        return Icons.outdoor_grill;
       case Category.grain:
-        return Icons.grain;
+        return Icons.ramen_dining;
       case Category.sauceSeasoning:
-        return Icons.liquor;
+        return Icons.snowing;
       case Category.frozen:
         return Icons.ac_unit;
       case Category.beverages:
-        return Icons.local_cafe;
+        return Icons.local_drink;
       case Category.household:
-        return Icons.cleaning_services;
+        return Icons.house;
       case Category.other:
         return Icons.shopping_bag;
     }
