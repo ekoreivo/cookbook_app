@@ -44598,9 +44598,9 @@ r=A.b8(n.h(0,"name"))
 if(r==null)r=""
 q=A.a_F(n.h(0,"quantity"))
 if(q==null)q=null
-if(q==null)q=1
+if(q==null)q=0
 p=A.b8(n.h(0,"unit"))
-if(p==null)p="item"
+if(p==null)p=""
 o=A.b8(n.h(0,"category"))
 o=A.ayz(o==null?"":o)
 n=A.fp(n.h(0,"isChecked"))
