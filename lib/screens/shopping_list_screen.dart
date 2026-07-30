@@ -8,8 +8,8 @@ class ShoppingListScreen extends ConsumerWidget {
 
   void _showAddItemDialog(BuildContext context, WidgetRef ref) {
     final nameController = TextEditingController();
-    final quantityController = TextEditingController(text: '1');
-    final unitController = TextEditingController(text: 'item');
+    final quantityController = TextEditingController();
+    final unitController = TextEditingController();
     Category selectedCategory = Category.other;
 
     showDialog(
@@ -97,14 +97,15 @@ class ShoppingListScreen extends ConsumerWidget {
                 ElevatedButton(
                   onPressed: () {
                     final name = nameController.text.trim();
-                    final qty = double.tryParse(quantityController.text.trim()) ?? 1.0;
+                    // Default to 0.0 instead of 1.0 if empty
+                    final qty = double.tryParse(quantityController.text.trim()) ?? 0.0;
                     final unit = unitController.text.trim();
 
                     if (name.isNotEmpty) {
                       ref.read(shoppingListProvider.notifier).addItem(
                             name,
                             qty,
-                            unit.isEmpty ? 'item' : unit,
+                            unit,
                             selectedCategory,
                           );
                       ref
@@ -232,10 +233,27 @@ class ShoppingListScreen extends ConsumerWidget {
                         color: Theme.of(context).cardColor, 
                         child: Container(
                           // Faded layer: Applies the category color at 15% opacity
-                          color: category.color.withOpacity(0.15), 
+                          color: category.color.withValues(alpha: 0.15), 
                           child: Column(
                             // We use a Column here so all items share the single background Container
                             children: categoryItems.map((item) {
+                              
+                              // 1. Determine if fields are "empty"
+                              final bool isEmptyQuantity = item.quantity == 0;
+                              final bool isEmptyUnit = item.unit.trim().isEmpty;
+
+                              // 2. Build the exact string we want
+                              String? subtitleText;
+                              if (isEmptyQuantity && isEmptyUnit) {
+                                subtitleText = null; // Shows nothing (e.g., Ketchup)
+                              } else if (isEmptyQuantity) {
+                                subtitleText = item.unit; // Shows just unit (e.g., Taste)
+                              } else {
+                                // Shows quantity + unit, or just quantity
+                                final qtyStr = item.quantity % 1 == 0 ? item.quantity.toInt().toString() : item.quantity.toString();
+                                subtitleText = isEmptyUnit ? qtyStr : '$qtyStr ${item.unit}';
+                              }
+
                               return CheckboxListTile(
                                 value: item.isChecked,
                                 title: Text(
@@ -246,12 +264,15 @@ class ShoppingListScreen extends ConsumerWidget {
                                     color: item.isChecked ? Colors.grey : null, 
                                   ),
                                 ),
-                                subtitle: Text(
-                                  '${item.quantity % 1 == 0 ? item.quantity.toInt() : item.quantity} ${item.unit}',
-                                  style: TextStyle(
-                                    decoration: item.isChecked ? TextDecoration.lineThrough : null,
-                                  ),
-                                ),
+                                // 3. Inject our smart subtitle!
+                                subtitle: subtitleText == null 
+                                    ? null 
+                                    : Text(
+                                        subtitleText,
+                                        style: TextStyle(
+                                          decoration: item.isChecked ? TextDecoration.lineThrough : null,
+                                        ),
+                                      ),
                                 secondary: IconButton(
                                   icon: const Icon(Icons.close, size: 18, color: Colors.grey),
                                   onPressed: () => ref.read(shoppingListProvider.notifier).removeItem(item.id),

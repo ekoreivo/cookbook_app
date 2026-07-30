@@ -89,8 +89,8 @@ class Ingredient {
 
   factory Ingredient.fromJson(Map<String, dynamic> json) => Ingredient(
         name: json['name'] as String? ?? '',
-        quantity: (json['quantity'] as num?)?.toDouble() ?? 1.0,
-        unit: json['unit'] as String? ?? 'item',
+        quantity: (json['quantity'] as num?)?.toDouble() ?? 0.0,
+        unit: json['unit'] as String? ?? '',
         category: Category.fromString(json['category'] as String? ?? ''),
       );
 }
