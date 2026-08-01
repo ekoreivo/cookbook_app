@@ -20,7 +20,7 @@ class TempIngredient {
 
   TempIngredient({
     String name = '',
-    String quantity = '1',
+    String quantity = '',
     String unit = '',
     this.category = Category.other,
   })  : nameController = TextEditingController(text: name),
@@ -125,7 +125,7 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
           Ingredient(
             name: name,
             quantity: qty,
-            unit: unit.isEmpty ? 'item' : unit,
+            unit: unit,
             category: temp.category,
           ),
         );
