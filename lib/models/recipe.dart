@@ -59,6 +59,22 @@ class Ingredient {
   final String unit;
   final Category category;
 
+  String? get formattedMeasurement {
+    final bool isEmptyQuantity = quantity == 0;
+    final bool isEmptyUnit = unit.trim().isEmpty;
+
+    if (isEmptyQuantity && isEmptyUnit) {
+      return null;
+    } else if (isEmptyQuantity) {
+      return unit;
+    } else {
+      final qtyStr = quantity % 1 == 0 
+          ? quantity.toInt().toString() 
+          : quantity.toString();
+      return isEmptyUnit ? qtyStr : '$qtyStr $unit';
+    }
+  }
+
   Ingredient({
     required this.name,
     required this.quantity,
@@ -153,6 +169,22 @@ class ShoppingItem {
   final String unit;
   final Category category;
   final bool isChecked;
+
+  String? get formattedMeasurement {
+    final bool isEmptyQuantity = quantity == 0;
+    final bool isEmptyUnit = unit.trim().isEmpty;
+
+    if (isEmptyQuantity && isEmptyUnit) {
+      return null;
+    } else if (isEmptyQuantity) {
+      return unit;
+    } else {
+      final qtyStr = quantity % 1 == 0 
+          ? quantity.toInt().toString() 
+          : quantity.toString();
+      return isEmptyUnit ? qtyStr : '$qtyStr $unit';
+    }
+  }
 
   ShoppingItem({
     required this.id,

@@ -288,9 +288,10 @@ class _RecipeDetailCard extends ConsumerWidget {
                                 style: const TextStyle(fontWeight: FontWeight.w600),
                               ),
                             ),
-                            Text(
-                              '${ing.quantity % 1 == 0 ? ing.quantity.toInt() : ing.quantity} ${ing.unit}',
-                              style: const TextStyle(color: Colors.grey),
+                            if (ing.formattedMeasurement != null)
+                              Text(
+                                ing.formattedMeasurement!,
+                                style: const TextStyle(color: Colors.grey),
                             ),
                           ],
                         ),
