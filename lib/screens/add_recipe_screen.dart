@@ -117,7 +117,7 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
 
     for (var temp in _ingredients) {
       final name = temp.nameController.text.trim();
-      final qty = double.tryParse(temp.quantityController.text.trim()) ?? 1.0;
+      final qty = double.tryParse(temp.quantityController.text.trim()) ?? 0.0;
       final unit = temp.unitController.text.trim();
 
       if (name.isNotEmpty) {
