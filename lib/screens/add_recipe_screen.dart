@@ -39,6 +39,9 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
   late TextEditingController _timeController;
   late TextEditingController _instructionsController;
   late List<TempIngredient> _ingredients;
+  late TextEditingController _notesController;
+  late TextEditingController _prepController;
+
 
   bool get isEditing => widget.recipeToEdit != null;
 
@@ -49,6 +52,8 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
     _titleController = TextEditingController(text: r?.title ?? '');
     _timeController = TextEditingController(text: (r?.prepTimeMinutes ?? 20).toString());
     _instructionsController = TextEditingController(text: r?.instructions ?? '');
+    _notesController = TextEditingController(text: r?.notes ?? '');
+    _prepController = TextEditingController(text: r?.prep ?? '');
 
     if (r != null && r.ingredients.isNotEmpty) {
       _ingredients = r.ingredients
@@ -69,6 +74,8 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
     _titleController.dispose();
     _timeController.dispose();
     _instructionsController.dispose();
+    _notesController.dispose();
+    _prepController.dispose();
     for (var ing in _ingredients) {
       ing.dispose();
     }
@@ -104,7 +111,8 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
     final title = _titleController.text.trim();
     final time = int.tryParse(_timeController.text.trim()) ?? 20;
     final instructions = _instructionsController.text.trim();
-
+    final notes = _notesController.text.trim();
+    final prep = _prepController.text.trim();
     if (title.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a recipe title.')),
@@ -147,6 +155,8 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
         prepTimeMinutes: time,
         instructions: instructions,
         ingredients: parsedIngredients,
+        notes: notes.isEmpty ? null : notes,
+        prep: prep.isEmpty ? null : prep,
       );
       ref.read(recipeProvider.notifier).updateRecipe(updated);
     } else {
@@ -156,6 +166,8 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
         prepTimeMinutes: time,
         instructions: instructions,
         ingredients: parsedIngredients,
+        notes: notes.isEmpty ? null : notes,
+        prep: prep.isEmpty ? null : prep,
       );
       ref.read(recipeProvider.notifier).addRecipe(newRecipe);
     }
@@ -196,6 +208,24 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
               maxLines: 4,
               decoration: const InputDecoration(
                 labelText: 'Cooking Instructions',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _prepController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Prep Work (Optional)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _notesController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Notes (Optional)',
                 border: OutlineInputBorder(),
               ),
             ),

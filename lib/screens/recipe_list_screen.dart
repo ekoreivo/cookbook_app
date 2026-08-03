@@ -242,6 +242,71 @@ class _RecipeDetailCard extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 24),
+          // --- PREP SECTION ---
+          if (recipe.prep != null && recipe.prep!.trim().isNotEmpty)
+            Card(
+              clipBehavior: Clip.antiAlias,
+              margin: const EdgeInsets.only(bottom: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: ExpansionTile(
+                initiallyExpanded: false,
+                collapsedBackgroundColor: const Color(0xFF007AFF).withValues(alpha: 0.1),
+                backgroundColor: const Color(0xFF007AFF).withValues(alpha: 0.1),
+                textColor: const Color(0xFF007AFF),
+                collapsedTextColor: const Color(0xFF007AFF),
+                iconColor: const Color(0xFF007AFF),
+                collapsedIconColor: const Color(0xFF007AFF),
+                leading: const Icon(Icons.kitchen),
+                title: const Text(
+                  'PREP WORK',
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.2),
+                ),
+                children: [
+                  Container(
+                    width: double.infinity,
+                    color: isDark ? const Color(0xFF1E1E1E) : Colors.grey[100],
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      recipe.prep!,
+                      style: const TextStyle(fontSize: 15, height: 1.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // --- NOTES SECTION ---
+          if (recipe.notes != null && recipe.notes!.trim().isNotEmpty)
+            Card(
+              clipBehavior: Clip.antiAlias,
+              margin: const EdgeInsets.only(bottom: 24),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: ExpansionTile(
+                initiallyExpanded: false,
+                collapsedBackgroundColor: Colors.deepPurple.withValues(alpha: 0.1),
+                backgroundColor: Colors.deepPurple.withValues(alpha: 0.1),
+                textColor: Colors.deepPurple,
+                collapsedTextColor: Colors.deepPurple,
+                iconColor: Colors.deepPurple,
+                collapsedIconColor: Colors.deepPurple,
+                leading: const Icon(Icons.note_alt),
+                title: const Text(
+                  'NOTES',
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.2),
+                ),
+                children: [
+                  Container(
+                    width: double.infinity,
+                    color: isDark ? const Color(0xFF1E1E1E) : Colors.grey[100],
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      recipe.notes!,
+                      style: const TextStyle(fontSize: 15, height: 1.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           LayoutBuilder(
             builder: (context, constraints) {
               final isWide = constraints.maxWidth > 550;

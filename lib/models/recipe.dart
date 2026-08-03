@@ -117,6 +117,8 @@ class Recipe {
   final int prepTimeMinutes;
   final String instructions;
   final List<Ingredient> ingredients;
+  final String? notes;
+  final String? prep;
 
   Recipe({
     required this.id,
@@ -124,6 +126,8 @@ class Recipe {
     required this.prepTimeMinutes,
     required this.instructions,
     required this.ingredients,
+    this.notes,
+    this.prep,
   });
 
   Recipe copyWith({
@@ -132,6 +136,8 @@ class Recipe {
     int? prepTimeMinutes,
     String? instructions,
     List<Ingredient>? ingredients,
+    String? notes,
+    String? prep,
   }) {
     return Recipe(
       id: id ?? this.id,
@@ -139,6 +145,8 @@ class Recipe {
       prepTimeMinutes: prepTimeMinutes ?? this.prepTimeMinutes,
       instructions: instructions ?? this.instructions,
       ingredients: ingredients ?? this.ingredients,
+      notes: notes ?? this.notes,
+      prep: prep ?? this.prep,
     );
   }
 
@@ -148,6 +156,8 @@ class Recipe {
         'prepTimeMinutes': prepTimeMinutes,
         'instructions': instructions,
         'ingredients': ingredients.map((i) => i.toJson()).toList(),
+        'notes': notes,
+        'prep': prep,
       };
 
   factory Recipe.fromJson(Map<String, dynamic> json) => Recipe(
@@ -159,6 +169,8 @@ class Recipe {
                 ?.map((i) => Ingredient.fromJson(Map<String, dynamic>.from(i as Map)))
                 .toList() ??
             [],
+        notes: json['notes'] as String?,
+        prep: json['prep'] as String?
       );
 }
 
