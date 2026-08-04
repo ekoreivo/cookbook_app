@@ -15,6 +15,7 @@ dependencies:
   flutter_riverpod: ^2.5.1
   firebase_core: ^4.12.1
   cloud_firestore: ^6.7.1
+  flutter_quill: ^11.5.1
 
 dev_dependencies:
   flutter_test:

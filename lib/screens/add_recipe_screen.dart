@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cookbook_app/models/recipe.dart';
 import 'package:cookbook_app/providers/app_state.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 
 class AddRecipeScreen extends ConsumerStatefulWidget {
   final Recipe? recipeToEdit;
@@ -37,13 +39,40 @@ class TempIngredient {
 class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
   late TextEditingController _titleController;
   late TextEditingController _timeController;
-  late TextEditingController _instructionsController;
-  late List<TempIngredient> _ingredients;
-  late TextEditingController _notesController;
-  late TextEditingController _prepController;
+  
+  // NEW: Quill Controllers for rich text
+  late QuillController _instructionsController;
+  late QuillController _notesController;
+  late QuillController _prepController;
 
+  late List<TempIngredient> _ingredients;
 
   bool get isEditing => widget.recipeToEdit != null;
+
+  // Helper to safely load text (handles both new rich text JSON and old plain text)
+  QuillController _initQuillController(String? text) {
+    if (text == null || text.trim().isEmpty) {
+      return QuillController.basic();
+    }
+    try {
+      final jsonDelta = jsonDecode(text);
+      final document = Document.fromJson(jsonDelta);
+      return QuillController(
+          document: document, selection: const TextSelection.collapsed(offset: 0));
+    } catch (e) {
+      // Fallback for older recipes saved before the rich text update
+      final document = Document()..insert(0, text);
+      return QuillController(
+          document: document, selection: const TextSelection.collapsed(offset: 0));
+    }
+  }
+
+  // Helper to save Quill document as a JSON string
+  String _getQuillText(QuillController controller) {
+    final plainText = controller.document.toPlainText().trim();
+    if (plainText.isEmpty) return '';
+    return jsonEncode(controller.document.toDelta().toJson());
+  }
 
   @override
   void initState() {
@@ -51,9 +80,11 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
     final r = widget.recipeToEdit;
     _titleController = TextEditingController(text: r?.title ?? '');
     _timeController = TextEditingController(text: (r?.prepTimeMinutes ?? 20).toString());
-    _instructionsController = TextEditingController(text: r?.instructions ?? '');
-    _notesController = TextEditingController(text: r?.notes ?? '');
-    _prepController = TextEditingController(text: r?.prep ?? '');
+    
+    // Initialize Quill controllers
+    _instructionsController = _initQuillController(r?.instructions);
+    _notesController = _initQuillController(r?.notes);
+    _prepController = _initQuillController(r?.prep);
 
     if (r != null && r.ingredients.isNotEmpty) {
       _ingredients = r.ingredients
@@ -110,9 +141,12 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
   void _saveRecipe() {
     final title = _titleController.text.trim();
     final time = int.tryParse(_timeController.text.trim()) ?? 20;
-    final instructions = _instructionsController.text.trim();
-    final notes = _notesController.text.trim();
-    final prep = _prepController.text.trim();
+    
+    // Extract JSON Delta strings from Quill controllers
+    final instructions = _getQuillText(_instructionsController);
+    final notes = _getQuillText(_notesController);
+    final prep = _getQuillText(_prepController);
+
     if (title.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a recipe title.')),
@@ -175,6 +209,64 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
     Navigator.of(context).pop();
   }
 
+  // Custom widget to build the Rich Text Editor cleanly
+  // Custom widget to build the Rich Text Editor cleanly
+  Widget _buildRichTextEditor(String label, QuillController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 6),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade400),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
+            children: [
+              // VERSION 10+ SYNTAX: QuillSimpleToolbar with QuillSimpleToolbarConfig
+              QuillSimpleToolbar(
+                controller: controller,
+                config: const QuillSimpleToolbarConfig(
+                  showFontFamily: false,
+                  showFontSize: false,
+                  showSearchButton: false,
+                  showInlineCode: false,
+                  showQuote: false,
+                  showIndent: false,
+                  showStrikeThrough: false,
+                  showCodeBlock: false,
+                  showClearFormat: false,
+                  showAlignmentButtons: false,
+                  showListCheck: false,
+                  showSubscript: false,
+                  showSuperscript: false,
+                ),
+              ),
+              const Divider(height: 1, thickness: 1),
+              Container(
+                constraints: const BoxConstraints(minHeight: 120),
+                padding: const EdgeInsets.all(12),
+                // VERSION 10+ SYNTAX: QuillEditor.basic takes the controller directly
+                child: QuillEditor.basic(
+                  controller: controller,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -193,7 +285,7 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             TextField(
               controller: _timeController,
               keyboardType: TextInputType.number,
@@ -202,34 +294,16 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _instructionsController,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                labelText: 'Cooking Instructions',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _prepController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Prep Work (Optional)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _notesController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Notes (Optional)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
+            
+            // Replaced plain TextFields with our new Rich Text Editors
+            _buildRichTextEditor('Cooking Instructions', _instructionsController),
+            const SizedBox(height: 16),
+            _buildRichTextEditor('Prep Work (Optional)', _prepController),
+            const SizedBox(height: 16),
+            _buildRichTextEditor('Notes (Optional)', _notesController),
+            
+            const SizedBox(height: 28),
             const Text(
               'Ingredients',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

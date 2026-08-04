@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:cookbook_app/models/recipe.dart';
 import 'package:cookbook_app/providers/app_state.dart';
 import 'package:cookbook_app/screens/add_recipe_screen.dart';
@@ -183,6 +185,30 @@ class _RecipeDetailCard extends ConsumerWidget {
 
   const _RecipeDetailCard({required this.recipe, required this.onEdit});
 
+  // Helper method to safely render formatted text or fallback to standard text
+  Widget _buildRichTextView(String text) {
+    try {
+      // Try to parse the string as a JSON array (Quill Delta format)
+      final jsonDelta = jsonDecode(text);
+      final controller = QuillController(
+        document: Document.fromJson(jsonDelta),
+        selection: const TextSelection.collapsed(offset: 0),
+      );
+      
+      return AbsorbPointer( // Prevents the read-only editor from stealing scrolling focus
+        child: QuillEditor.basic(
+          controller: controller,
+        ),
+      );
+    } catch (e) {
+      // If parsing fails, it's a legacy plain-text recipe
+      return Text(
+        text,
+        style: const TextStyle(fontSize: 15, height: 1.6),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -242,6 +268,7 @@ class _RecipeDetailCard extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 24),
+          
           // --- PREP SECTION ---
           if (recipe.prep != null && recipe.prep!.trim().isNotEmpty)
             Card(
@@ -266,10 +293,7 @@ class _RecipeDetailCard extends ConsumerWidget {
                     width: double.infinity,
                     color: isDark ? const Color(0xFF1E1E1E) : Colors.grey[100],
                     padding: const EdgeInsets.all(16.0),
-                    child: Text(
-                      recipe.prep!,
-                      style: const TextStyle(fontSize: 15, height: 1.6),
-                    ),
+                    child: _buildRichTextView(recipe.prep!),
                   ),
                 ],
               ),
@@ -299,14 +323,12 @@ class _RecipeDetailCard extends ConsumerWidget {
                     width: double.infinity,
                     color: isDark ? const Color(0xFF1E1E1E) : Colors.grey[100],
                     padding: const EdgeInsets.all(16.0),
-                    child: Text(
-                      recipe.notes!,
-                      style: const TextStyle(fontSize: 15, height: 1.6),
-                    ),
+                    child: _buildRichTextView(recipe.notes!),
                   ),
                 ],
               ),
             ),
+            
           LayoutBuilder(
             builder: (context, constraints) {
               final isWide = constraints.maxWidth > 550;
@@ -357,7 +379,7 @@ class _RecipeDetailCard extends ConsumerWidget {
                               Text(
                                 ing.formattedMeasurement!,
                                 style: const TextStyle(color: Colors.grey),
-                            ),
+                              ),
                           ],
                         ),
                       ),
@@ -379,10 +401,7 @@ class _RecipeDetailCard extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    recipe.instructions,
-                    style: const TextStyle(fontSize: 15, height: 1.6),
-                  ),
+                  _buildRichTextView(recipe.instructions),
                 ],
               );
 
