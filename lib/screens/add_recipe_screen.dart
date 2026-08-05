@@ -253,7 +253,7 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
               ),
               const Divider(height: 1, thickness: 1),
               Container(
-                constraints: const BoxConstraints(minHeight: 120),
+                height: 200,
                 padding: const EdgeInsets.all(12),
                 // VERSION 10+ SYNTAX: QuillEditor.basic takes the controller directly
                 child: QuillEditor.basic(
