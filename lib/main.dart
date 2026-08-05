@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cookbook_app/providers/app_state.dart';
 import 'package:cookbook_app/screens/main_home_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -34,6 +35,8 @@ class MyApp extends ConsumerWidget {
     return MaterialApp(
       title: 'Cookbook App',
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: FlutterQuillLocalizations.localizationsDelegates,
+      supportedLocales: FlutterQuillLocalizations.supportedLocales,
       themeMode: themeMode,
       theme: ThemeData(
         useMaterial3: true,
