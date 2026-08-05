@@ -253,11 +253,15 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
               ),
               const Divider(height: 1, thickness: 1),
               Container(
-                height: 200,
+                constraints: const BoxConstraints(minHeight: 120),
                 padding: const EdgeInsets.all(12),
                 // VERSION 10+ SYNTAX: QuillEditor.basic takes the controller directly
                 child: QuillEditor.basic(
                   controller: controller,
+                  config: const QuillEditorConfig(
+                    scrollable: false,
+                    expands: false,
+                  ),
                 ),
               ),
             ],
@@ -353,7 +357,7 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           DropdownButton<Category>(
-                            value: tempIng.category,
+                            value: Category.values.contains(tempIng.category) ? tempIng.category : Category.other,
                             items: Category.values.map((cat) {
                               return DropdownMenuItem(
                                 value: cat,
